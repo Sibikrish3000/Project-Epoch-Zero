@@ -1,0 +1,39 @@
+[project]
+name = "Project Epoch Zero"
+version = "0.1.0"
+description = "Eliminating orbital drift at the source."
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "pandas>=2.3.3",
+    "matplotlib>=3.10.8",
+    "tqdm>=4.67.1",
+    "skyfield>=1.53",
+    "sgp4>=2.25",
+    "torchdiffeq>=0.2.5",
+    "plotly>=6.5.0",
+    "spacetrack>=1.4.0",
+    "scikit-learn>=1.8.0",
+    "joblib>=1.5.3",
+    "seaborn>=0.13.2",
+    "ipywidgets>=8.1.8",
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchvision = { index = "pytorch" }
+torchaudio = { index = "pytorch" }
+
+[dependency-groups]
+dev = [
+    "jupyterlab>=4.5.1",
+]
