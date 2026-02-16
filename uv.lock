@@ -1631,6 +1631,55 @@ wheels = [
 ]
 
 [[package]]
+name = "project-epoch-zero"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "ipywidgets" },
+    { name = "joblib" },
+    { name = "matplotlib" },
+    { name = "pandas" },
+    { name = "plotly" },
+    { name = "scikit-learn" },
+    { name = "seaborn" },
+    { name = "sgp4" },
+    { name = "skyfield" },
+    { name = "spacetrack" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "torchdiffeq" },
+    { name = "torchvision" },
+    { name = "tqdm" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "jupyterlab" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ipywidgets", specifier = ">=8.1.8" },
+    { name = "joblib", specifier = ">=1.5.3" },
+    { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "pandas", specifier = ">=2.3.3" },
+    { name = "plotly", specifier = ">=6.5.0" },
+    { name = "scikit-learn", specifier = ">=1.8.0" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "sgp4", specifier = ">=2.25" },
+    { name = "skyfield", specifier = ">=1.53" },
+    { name = "spacetrack", specifier = ">=1.4.0" },
+    { name = "torch", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torchaudio", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torchdiffeq", specifier = ">=0.2.5" },
+    { name = "torchvision", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "tqdm", specifier = ">=4.67.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "jupyterlab", specifier = ">=4.5.1" }]
+
+[[package]]
 name = "prometheus-client"
 version = "0.23.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2017,55 +2066,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ae/f8/3be2826ee081aeaf4
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1f/08/f38d9f6a3c6d9b5ea2a79414c9a65a7dd7bbe97ee1554396ffe1811a0fad/rush-2021.4.0-py3-none-any.whl", hash = "sha256:0f775f35a951b7874442c78eaa312bbd442be130dee9508f8d05b2f43dbd3acc", size = 18556, upload-time = "2021-04-01T17:58:36.628Z" },
 ]
-
-[[package]]
-name = "satdeb-clanker"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "ipywidgets" },
-    { name = "joblib" },
-    { name = "matplotlib" },
-    { name = "pandas" },
-    { name = "plotly" },
-    { name = "scikit-learn" },
-    { name = "seaborn" },
-    { name = "sgp4" },
-    { name = "skyfield" },
-    { name = "spacetrack" },
-    { name = "torch" },
-    { name = "torchaudio" },
-    { name = "torchdiffeq" },
-    { name = "torchvision" },
-    { name = "tqdm" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "jupyterlab" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ipywidgets", specifier = ">=8.1.8" },
-    { name = "joblib", specifier = ">=1.5.3" },
-    { name = "matplotlib", specifier = ">=3.10.8" },
-    { name = "pandas", specifier = ">=2.3.3" },
-    { name = "plotly", specifier = ">=6.5.0" },
-    { name = "scikit-learn", specifier = ">=1.8.0" },
-    { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "sgp4", specifier = ">=2.25" },
-    { name = "skyfield", specifier = ">=1.53" },
-    { name = "spacetrack", specifier = ">=1.4.0" },
-    { name = "torch", index = "https://download.pytorch.org/whl/cu124" },
-    { name = "torchaudio", index = "https://download.pytorch.org/whl/cu124" },
-    { name = "torchdiffeq", specifier = ">=0.2.5" },
-    { name = "torchvision", index = "https://download.pytorch.org/whl/cu124" },
-    { name = "tqdm", specifier = ">=4.67.1" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "jupyterlab", specifier = ">=4.5.1" }]
 
 [[package]]
 name = "scikit-learn"

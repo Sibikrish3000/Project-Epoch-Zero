@@ -1,5 +1,5 @@
 [project]
-name = "Project Epoch Zero"
+name = "project-epoch-zero"
 version = "0.1.0"
 description = "Eliminating orbital drift at the source."
 readme = "README.md"
