@@ -28,6 +28,8 @@ eval "$("$MAMBA_EXE" shell hook -s "$CURRENT_SHELL" --root-prefix "$MAMBA_ROOT_P
 # Provision environment
 "$MAMBA_EXE" create -p "$ENV_PATH" python=3.12 -c conda-forge -c tudat-team tudatpy -y
 
+micromamba clean --all -y
+
 micromamba activate "$ENV_PATH"
 
 # Resolve dependencies and verify binding
@@ -35,7 +37,7 @@ uv sync
 uv run python -c "import tudatpy; print('Tudatpy Version:', tudatpy.__version__)"
 
 # Cleaning Cache
-micromamba clean --all -y
+
 uv cache clean
 
 # Enforce environment activation on subsequent container attachments
