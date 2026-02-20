@@ -7,6 +7,12 @@ ENV_PATH="$(pwd)/.venv"
 CURRENT_SHELL=$(basename "${SHELL:-bash}")
 RC_FILE="$HOME/.${CURRENT_SHELL}rc"
 
+
+if ! command -v uv &> /dev/null; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+fi
+
 if [ ! -f "$MAMBA_EXE" ]; then
     mkdir -p "$HOME/.local/bin"
     curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -O bin/micromamba > "$MAMBA_EXE"
