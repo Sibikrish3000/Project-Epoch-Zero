@@ -1,7 +1,5 @@
 \ProvidesPackage{customfr}[2025/08/16 Custom formatting]
-
-
-
+\makeatletter
 
 % Paragraphs
 \parindent 1em
@@ -77,6 +75,5 @@ Abstract}\vspace{0.5ex}\begin{quote}}{\par\end{quote}\vskip 1ex}
      \labelwidth\leftmarginv\advance\labelwidth-\labelsep}
 \def\@listvi{\leftmargin\leftmarginvi
      \labelwidth\leftmarginvi\advance\labelwidth-\labelsep}
-
-% We're never going to need a table of contents, so just flush it to
-%\def\addcontentsline#1#2#3{}
+\makeatother
+% =========================================================

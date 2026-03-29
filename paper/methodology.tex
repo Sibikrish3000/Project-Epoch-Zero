@@ -1,80 +1,72 @@
-\section{Methodology}
+\section{Methodology: The Gated PINN Framework}\label{sec:method}
 
-\subsection{Data Curation and Feature Engineering}
-To train the G-PINN, we require a massive dataset of ground-truth state vectors alongside SGP4 predictions. We targeted LEO assets, specifically Starlink satellites (e.g., NORAD ID 50803), due to their high susceptibility to atmospheric drag.
-
-\subsubsection{TLE Ingestion}
-Using the SpaceTrack API's \texttt{gp\_history} endpoint, we queried thousands of historical TLEs from January 1, 2022, to December 17, 2025. This timeframe encompasses multiple severe geomagnetic storms (Solar Cycle 25 maximum).
-The extracted SGP4 state variables include:
-\begin{itemize}
-    \item Mean Motion ($n$) and its derivatives ($\dot{n}$).
-    \item Eccentricity ($e$), Inclination ($i$).
-    \item Right Ascension of Ascending Node ($\Omega$), Argument of Perigee ($\omega$), Mean Anomaly ($M$).
-    \item The pseudo-ballistic drag coefficient ($B^*$).
-\end{itemize}
-
-\subsubsection{Residual Generation}
-The objective of the network is to learn the discrepancy between an SGP4 propagated state and the true state of the satellite. We define an ''Anchor'' TLE at time $t_0$. We then search the database for a ''Target'' TLE located $\Delta t \approx 24$ hours in the future.
-
-We propagate the Anchor TLE forward by $\Delta t$ using SGP4:
-\begin{equation}[\mathbf{r}_{pred}, \textbf{v}_{pred}] = \text{SGP4}(\text{TLE}_{anchor}, \Delta t)
-\end{equation}
-Simultaneously, we resolve the Target TLE at its own epoch to retrieve the pseudo-ground truth:
-\begin{equation}[\mathbf{r}_{true}, \textbf{v}_{true}] = \text{SGP4}(\text{TLE}_{target}, 0)
-\end{equation}
-
-The residual error, which serves as the label $\mathbf{y}$ for our neural network, is:
+\subsection{Data Curation and Space-Weather Fusion}
+The training corpus is built from Starlink TLE history across 2022--2026, covering both rising and peak Solar Cycle 25 conditions. For each anchor epoch $t_0$, we pair a future target epoch $t_0+\Delta t$ (typically near 24 h) and construct residual labels between propagated and target states:
 \begin{equation}
-    \mathbf{y} =[\mathbf{r}_{true} - \mathbf{r}_{pred}, \textbf{v}_{true} - \textbf{v}_{pred}]
+[\mathbf{r}_{pred},\mathbf{v}_{pred}] = \mathrm{SGP4}(\mathrm{TLE}_{anchor},\Delta t),
 \end{equation}
-
-\subsubsection{Space Weather Fusion}
-To provide the network with an awareness of the thermodynamic state of the atmosphere, we cross-referenced the Celestrak Space Weather database. For every Anchor TLE, we extracted the corresponding observed F10.7 solar flux index.
-The final feature vector $\mathbf{x}$ consists of 10 variables:
 \begin{equation}
-    \mathbf{x} =[r_x, r_y, r_z, v_x, v_y, v_z, B^*, \dot{n}, \Delta t, F10.7]
+[\mathbf{r}_{true},\mathbf{v}_{true}] = \mathrm{SGP4}(\mathrm{TLE}_{target},0),
 \end{equation}
-Data was scaled using Standard Scalers to ensure uniform gradient propagation across features with vastly different magnitudes (e.g., position in km vs $B^*$ in Earth Radii$^{-1}$).
-
-\subsection{The Gated PINN Architecture}
-A standard residual network learns a mapping $\mathcal{F}_\theta(\mathbf{x}) \rightarrow \mathbf{y}$. However, neural networks universally learn a bias term. Thus, at $\Delta t = 0$, $\mathcal{F}_\theta(\mathbf{x}, 0) = \mathbf{b} \neq 0$. This results in a non-zero position correction at the epoch, effectively teleporting the satellite.
-
-To strictly enforce kinematic consistency, we designed a specialized architecture with a deterministic Physics Gate.
-Let the raw output of our Multi-Layer Perceptron (MLP) be $\mathcal{H}_\theta(\mathbf{x})$. The final network output $\hat{\mathbf{y}}$ is defined as:
 \begin{equation}
-    \hat{\mathbf{y}} = \mathcal{H}_\theta(\mathbf{x}) \odot \Gamma(\Delta t_{norm})
+\mathbf{y}=\left[\mathbf{r}_{true}-\mathbf{r}_{pred},\;\mathbf{v}_{true}-\mathbf{v}_{pred}\right].
 \end{equation}
-Where $\Gamma$ is the Soft Physics Gate function:
+Feature vectors combine kinematics and drag proxies with exogenous weather drivers:
 \begin{equation}
-    \Gamma(t) = \tanh(\lambda \cdot t)
+\mathbf{x}=\left[r_x,r_y,r_z,v_x,v_y,v_z,B^*,\dot{n},\Delta t,K_p,F_{10.7}\right].
 \end{equation}
-Here, $\lambda = 5.0$, and $t$ is the normalized propagation time ($dt_{minutes} / 1440.0$).
+This formulation follows evidence that storm-time density and drag variability must be represented explicitly for resilient propagation \cite{oliveira2021current,li2025density}.
 
-\subsubsection{Gate Dynamics}
-\begin{itemize}
-    \item \textbf{At $t = 0$:} $\tanh(0) = 0$. The gate completely suppresses the network output, ensuring zero error and perfectly aligning with the SGP4 state vector.
-    \item \textbf{At $t > 0$:} The $\tanh$ function rapidly approaches $1$. As time increases, the gate ''opens,'' allowing the full magnitude of the learned non-linear drag correction $\mathcal{H}_\theta(\mathbf{x})$ to be applied to the SGP4 prediction.
-\end{itemize}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{figures/flux_anaysis.png}
+\caption{Space-weather feature analysis used to condition storm-aware drag correction behavior.}
+\label{fig:flux-analysis}
+\end{figure}
 
-\subsection{Training and Optimization}
-The model consists of a sequence of Dense layers (10 $\rightarrow$ 128 $\rightarrow$ 256 $\rightarrow$ 128 $\rightarrow$ 6) utilizing $\tanh$ activation functions to ensure continuous, smooth orbital manifolds without the jaggedness introduced by ReLUs.
-The loss function is the Mean Squared Error (MSE):
-\begin{equation}
-    \mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^{N} \left\| \mathbf{y}_i - \left( \mathcal{H}_\theta(\mathbf{x}_i) \cdot \tanh(\lambda t_i) \right) \right\|^2
-\end{equation}
-Optimization was performed using the Adam optimizer with an initial learning rate of $0.002$ and a batch size of $256$. A \texttt{ReduceLROnPlateau} scheduler was utilized to step down the learning rate dynamically when the loss plateaued, forcing fine-grained convergence to the highly sensitive orbital residuals.
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{figures/training.png}
+\caption{Training dynamics of the G-PINN model across optimization epochs.}
+\label{fig:training-curves}
+\end{figure}
 
-\subsection{Monte Carlo Conjunction Assessment}
-To translate point predictions into operational safety metrics, we implemented a Mahalanobis-distance-based Monte Carlo (MC) Conjunction Assessor.
-Given two satellites $A$ (Primary) and $B$ (Intruder), we define their nominal states at Time of Closest Approach (TCA) using the SGP4/PINN hybrid.
-We generate thousands of variations of their initial states by applying anisotropic Gaussian noise in the Radial, In-Track, and Cross-Track (RIC) frame, representing inherent SGP4 covariance uncertainty:
+\subsection{Deepening the Physics Gate: Hard and Soft Constraints}
+Let $\mathcal{H}_{\theta}(\mathbf{x})$ be the raw MLP residual output. The G-PINN correction is
 \begin{equation}
-    \Sigma_{RIC} = \text{diag}(\sigma_R^2, \sigma_I^2, \sigma_C^2)
+\hat{\mathbf{y}} = \mathcal{H}_{\theta}(\mathbf{x})\odot\Gamma(t), \qquad \Gamma(t)=\tanh(\lambda t),
 \end{equation}
-Where typically $\sigma_I \gg \sigma_R, \sigma_C$ due to drag uncertainty.
-These samples are transformed into the Earth-Centered Inertial (ECI) frame and passed through the G-PINN in parallel via PyTorch tensor batching.
-The statistical risk of collision is assessed via the Mahalanobis Distance ($D_M$):
+with $\lambda=5.0$ and normalized time $t\in[0,1]$.
+
+\textbf{Hard boundary condition:} at $t=0$, $\Gamma(0)=0$, so $\hat{\mathbf{y}}=\mathbf{0}$ exactly. This enforces epoch consistency and removes Phantom Drift by construction.
+
+\textbf{Soft physics regularization:} training also penalizes residual trajectories that violate expected drag-driven curvature. The guidance term follows the known growth trend
 \begin{equation}
-    D_M = \sqrt{ (\boldsymbol{\mu}_A - \boldsymbol{\mu}_B)^T (\Sigma_{A_{ECI}} + \Sigma_{B_{ECI}})^{-1} (\boldsymbol{\mu}_A - \boldsymbol{\mu}_B) }
+\Delta\mathbf{r}_{error} \propto \frac{1}{2}\ddot{n}\,\Delta t^2,
 \end{equation}
-Where values of $D_M < 3.0$ indicate critical, 3-sigma collision risk, minimizing the search volumes natively.
+encouraging physically consistent corrections while preserving learning flexibility \cite{loshelder2025od,dallinger2025cov}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{figures/gate.png}
+\caption{Physics Gate profile $\Gamma(t)=\tanh(\lambda t)$ showing strict suppression near $t=0$.}
+\label{fig:physics-gate}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{figures/pinn_vaidation.png}
+\caption{PINN validation performance comparing predicted corrections against held-out samples.}
+\label{fig:pinn-validation}
+\end{figure}
+
+\subsection{Monte Carlo Conjunction and Mahalanobis Risk}
+Operational assessment requires distribution-aware prediction, not only point estimates. We perturb initial states in the RIC frame using anisotropic Gaussian noise,
+\begin{equation}
+\Sigma_{RIC}=\mathrm{diag}(\sigma_R^2,\sigma_I^2,\sigma_C^2),
+\end{equation}
+propagate thousands of samples through the G-PINN, and score pairwise encounter risk with Mahalanobis distance:
+\begin{equation}
+D_M=\sqrt{(\boldsymbol{\mu}_A-\boldsymbol{\mu}_B)^T(\boldsymbol{\Sigma}_A+\boldsymbol{\Sigma}_B)^{-1}(\boldsymbol{\mu}_A-\boldsymbol{\mu}_B)}.
+\end{equation}
+Risk bands (Critical/Watch/Low) are then assigned from covariance overlap statistics, enabling direct integration with conjunction decision support workflows \cite{sanjuan2021uncertainty,ramesh2025space}.
